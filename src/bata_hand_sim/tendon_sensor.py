@@ -38,7 +38,8 @@ class TendonSensor(object):
                dof_states,
                envs,
                actors,
-               dt):
+               dt,
+               device):
       
     self.gym = gym
     self.prefix = prefix
@@ -47,6 +48,7 @@ class TendonSensor(object):
     self.envs = envs
     self.actors = actors
     self.dt = dt
+    self.device = device
     
     self.bodies_per_env = gym.get_env_rigid_body_count(envs[0])
     self.tendon_site_base_idx = gym.find_actor_rigid_body_index(envs[0], actors[0], prefix+self.BASE_TENDON_LINK, gymapi.DOMAIN_SIM)    

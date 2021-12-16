@@ -27,13 +27,15 @@ class FingerTorque(object):
                rb_states,
                dof_states,
                envs,
-               actors):
+               actors,
+               device):
     self.gym = gym
     self.prefix = prefix
     self.rb_states = rb_states
     self.dof_states = dof_states
     self.envs = envs
     self.actors = actors
+    self.device = device
  
     self.bodies_per_env = gym.get_env_rigid_body_count(envs[0])
     self.finger_intermd1_idx = gym.find_actor_rigid_body_index(envs[0], actors[0], prefix+self.INTERMD1_LINK, gymapi.DOMAIN_SIM)
@@ -57,12 +59,19 @@ class FingerTorque(object):
     self.finger_dof1_pos = self.dof_states[self.finger_dof1_idx::self.dof_per_env,0]
     self.finger_dof2_pos = self.dof_states[self.finger_dof2_idx::self.dof_per_env,0]
     self.finger_dof3_pos = self.dof_states[self.finger_dof3_idx::self.dof_per_env,0]  
-    
+    self.finger_dof1_vel = self.dof_states[self.finger_dof1_idx::self.dof_per_env,1]
+    self.finger_dof2_vel = self.dof_states[self.finger_dof2_idx::self.dof_per_env,1]
+    self.finger_dof3_vel = self.dof_states[self.finger_dof3_idx::self.dof_per_env,1]
+     
   def compute_tendon_torques(self, tendon_ctl):
     assert(len(tendon_ctl.shape) <= 1 or 
           (len(tendon_ctl.shape) == 2 and tendon_ctl.shape[1] == 1))
     
-    tendon_torques = torch.zeros(self.num_dofs, dtype=torch.float32, device="cuda:0")
+    torch.maximum(tendon_ctl,
+                  torch.tensor([0.0],dtype=torch.float32, device=self.device),
+                  out=tendon_ctl)
+    
+    tendon_torques = torch.zeros(self.num_dofs, dtype=torch.float32, device=self.device)
     
     # Compute lever arms, (n_actors, 3)
     intermd1_levers = self.tendon_anchor2_pos - self.finger_intermd1_pos
@@ -87,7 +96,7 @@ class FingerTorque(object):
     return tendon_torques
     
   def compute_spring_torques(self):
-    spring_torques = torch.zeros(self.num_dofs, dtype=torch.float32, device="cuda:0")        
+    spring_torques = torch.zeros(self.num_dofs, dtype=torch.float32, device=self.device)        
     
     finger_dof1_spring_torque = -1*self.JOINT1_SPRING_CONSTANT*(self.finger_dof1_pos - self.JOINT1_SPRING_REF_ANGLE)
     finger_dof2_spring_torque = -1*self.JOINT2_SPRING_CONSTANT*(self.finger_dof2_pos - self.JOINT2_SPRING_REF_ANGLE)

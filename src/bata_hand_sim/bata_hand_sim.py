@@ -16,7 +16,7 @@ from bata_hand_sim.tendon_sensor import TendonSensor
 
 class BATAHandSim(object):
   asset_root = "/home/patrick/bata_hand_ws/devel/share/bata_hand_description"
-  hand_asset_file = "robots/bata_hand.urdf"
+  hand_asset_file = "robots/bata_hand_isaac.urdf"
   object_asset_file = "robots/cylinder.urdf"
   goal_asset_file = "robots/short_cylinder.urdf"
   
@@ -120,6 +120,9 @@ class BATAHandSim(object):
     # position the camera
     self.cam_pos = gymapi.Vec3(0.15,0.1,0.55)
     self.cam_target = gymapi.Vec3(0.2, 0.1, 0)
+
+    #self.cam_pos = gymapi.Vec3(0.35,0.2,0.4)
+    #self.cam_target = gymapi.Vec3(0.2, 0.0, 0)
 
     self.envs = []
     self.actors = []

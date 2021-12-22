@@ -47,6 +47,8 @@ class BATAHandSim(object):
                               args.graphics_device_id,
                               args.physics_engine,
                               sim_params)
+    self.dt = sim_params.dt
+                                      
     if self.sim is None:
       print("*** Failed to create sim")
       quit()
@@ -248,16 +250,7 @@ class BATAHandSim(object):
                                         self.dof_states,
                                         self.envs,
                                         self.actors,
-                                        self.device)
-                                   
-    self.r_tendon_sensor = TendonSensor(gym,
-                                        "r_",
-                                        self.rb_states,
-                                        self.dof_states,
-                                        self.envs, 
-                                        self.actors, 
-                                        sim_params.dt,
-                                        self.device)                
+                                        self.device)                                                 
 
     self.l_finger_torque = FingerTorque(gym,
                                         "l_",
@@ -265,29 +258,21 @@ class BATAHandSim(object):
                                         self.dof_states,
                                         self.envs,
                                         self.actors,
-                                        self.device)
-                                       
-    self.l_tendon_sensor = TendonSensor(gym,
-                                        "l_",
-                                        self.rb_states,
-                                        self.dof_states,
-                                        self.envs, 
-                                        self.actors, 
-                                        sim_params.dt,
-                                        self.device)                
+                                        self.device) 
+    self.tendon_sensor = TendonSensor()                                                           
 
     self.l_tip_body_idx = self.gym.find_actor_rigid_body_index(self.envs[0], 
                                                                self.actors[0], 
-                                                               'l_'+self.l_tendon_sensor.TIP_LINK, 
+                                                               'l_'+self.tendon_sensor.TIP_LINK, 
                                                                gymapi.DOMAIN_SIM)
     self.r_tip_body_idx = self.gym.find_actor_rigid_body_index(self.envs[0], 
                                                                self.actors[0], 
-                                                               'r_'+self.r_tendon_sensor.TIP_LINK, 
+                                                               'r_'+self.tendon_sensor.TIP_LINK, 
                                                                gymapi.DOMAIN_SIM)
-                                                                                                                                                                                            
-    self.l_tip_contact = self.net_cf[self.l_tip_body_idx::self.l_tendon_sensor.bodies_per_env]
-    self.r_tip_contact = self.net_cf[self.r_tip_body_idx::self.r_tendon_sensor.bodies_per_env]
     
+    bodies_per_env = gym.get_env_rigid_body_count(self.envs[0])
+    self.l_tip_contact = self.net_cf[self.l_tip_body_idx::bodies_per_env]
+    self.r_tip_contact = self.net_cf[self.r_tip_body_idx::bodies_per_env]    
     if self.viewer is not None:
       gym.viewer_camera_look_at(self.viewer, None, self.cam_pos, self.cam_target)
       gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_W, "l_inc_force")
@@ -401,6 +386,9 @@ class BATAHandSim(object):
          
   def simulate(self):
     assert(self.viewer is not None)
+    
+    prev_finger_dofs = torch.zeros((self.num_envs,6),dtype=torch.float32, device=self.device)
+    
     while not self.gym.query_viewer_has_closed(self.viewer):
 
         # step the physics
@@ -426,31 +414,51 @@ class BATAHandSim(object):
         r_tendon_force = torch.tensor([self.r_force_sp], dtype=torch.float32, device=self.device)     
         r_tendon_torques = self.r_finger_torque.compute_tendon_torques(r_tendon_force)
         r_spring_torques = self.r_finger_torque.compute_spring_torques()
-        r_tendon_lengths_rb = self.r_tendon_sensor.compute_tendon_length_dv_rb()
-        r_tendon_lengths_analytic = self.r_tendon_sensor.compute_tendon_length_dv_analytic()
-        r_tendon_velocities_analytic = self.r_tendon_sensor.compute_tendon_velocity()
+        r_tendon_lengths = self.tendon_sensor.compute_tendon_length(self.r_finger_torque.finger_dof1_pos,
+                                                                    self.r_finger_torque.finger_dof2_pos,
+                                                                    self.r_finger_torque.finger_dof3_pos)
+        r_tendon_velocities = self.tendon_sensor.compute_tendon_velocity(self.dt,
+                                                                         self.r_finger_torque.finger_dof1_pos,
+                                                                         self.r_finger_torque.finger_dof2_pos,
+                                                                         self.r_finger_torque.finger_dof3_pos,
+                                                                         prev_finger_dofs[:,3],
+                                                                         prev_finger_dofs[:,4],
+                                                                         prev_finger_dofs[:,5])
 
         l_tendon_force = torch.tensor([self.l_force_sp], dtype=torch.float32, device=self.device)
         l_tendon_torques = -1*self.l_finger_torque.compute_tendon_torques(l_tendon_force)
         l_spring_torques = self.l_finger_torque.compute_spring_torques()
-        l_tendon_lengths_rb = self.l_tendon_sensor.compute_tendon_length_dv_rb()
-        l_tendon_lengths_analytic = self.l_tendon_sensor.compute_tendon_length_dv_analytic()
-        l_tendon_velocities_analytic = self.l_tendon_sensor.compute_tendon_velocity()
+        l_tendon_lengths = self.tendon_sensor.compute_tendon_length(self.l_finger_torque.finger_dof1_pos,
+                                                                    self.l_finger_torque.finger_dof2_pos,
+                                                                    self.l_finger_torque.finger_dof3_pos)
+        l_tendon_velocities = self.tendon_sensor.compute_tendon_velocity(self.dt,
+                                                                         self.l_finger_torque.finger_dof1_pos,
+                                                                         self.l_finger_torque.finger_dof2_pos,
+                                                                         self.l_finger_torque.finger_dof3_pos,
+                                                                         prev_finger_dofs[:,0],
+                                                                         prev_finger_dofs[:,1],
+                                                                         prev_finger_dofs[:,2])
 
         #print('Force set to %f %f'%(self.l_force_sp,self.r_force_sp))
         #print("Torques")
         #print(l_tendon_torques[0:self.dof_per_env])
         #print(l_spring_torques[0:self.dof_per_env])
-        #print("RB: %f"%l_tendon_lengths_rb[0].item())
-        #print("Analytic: %f"%l_tendon_lengths_analytic[0].item())
+        #print("Length: %f %f"%(l_tendon_lengths[0].item(),r_tendon_lengths[0].item()))
         #print("Diff: %f"%(l_tendon_lengths_rb[0]-l_tendon_lengths_analytic[0]).item())
-        #print("Vel: %f"%(l_tendon_velocities_analytic[0].item()))
+        #print("Vel: %f %f"%(l_tendon_velocities[0].item(),r_tendon_velocities[0].item()))
         #print("Contact: %f %f"%(torch.norm(self.l_tip_contact[0]).item(),
         #                        torch.norm(self.r_tip_contact[0]).item()))
         
         intrinsic_torques = r_tendon_torques + r_spring_torques
         intrinsic_torques += l_tendon_torques + l_spring_torques
 
+        prev_finger_dofs[:,0] = self.l_finger_torque.finger_dof1_pos[:]
+        prev_finger_dofs[:,1] = self.l_finger_torque.finger_dof2_pos[:]
+        prev_finger_dofs[:,2] = self.l_finger_torque.finger_dof3_pos[:]
+        prev_finger_dofs[:,3] = self.r_finger_torque.finger_dof1_pos[:]
+        prev_finger_dofs[:,4] = self.r_finger_torque.finger_dof2_pos[:]
+        prev_finger_dofs[:,5] = self.r_finger_torque.finger_dof3_pos[:]
+                
         self.gym.set_dof_actuation_force_tensor(self.sim, 
                                                 gymtorch.unwrap_tensor(intrinsic_torques))
 

@@ -414,8 +414,7 @@ class BATAHandSim(object):
     
     return self.get_sim_state()  
     
-if __name__ == '__main__':
-
+def main():    
   # initialize gym
   gym = gymapi.acquire_gym()
 
@@ -436,5 +435,8 @@ if __name__ == '__main__':
   cur_state = bhs.get_sim_state()
   cur_action = torch.zeros((1,2),dtype=torch.float32,device=device)
   while True:
-    cur_state = bhs.step(cur_state, cur_action, True, True)
+    cur_state = bhs.step(cur_state, cur_action, True, True)    
+if __name__ == '__main__':
+  main()
+
                                                                                                     

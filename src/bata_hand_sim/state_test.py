@@ -7,7 +7,7 @@ import time
 
 class BATAHandSim(object):
   asset_root = "/home/patrick/bata_hand_ws/devel/share/bata_hand_description"
-  hand_asset_file = "robots/bata_hand.urdf"
+  hand_asset_file = "robots/bata_hand_isaac.urdf"
   object_asset_file = "robots/cylinder.urdf"
   goal_asset_file = "robots/short_cylinder.urdf"
   
@@ -166,6 +166,7 @@ class BATAHandSim(object):
         self.gym.refresh_dof_state_tensor(self.sim)
         if steps % 60 == 0:
           self.gym.set_dof_state_tensor(self.sim,gymtorch.unwrap_tensor(zeros))
+          #self.gym.set_dof_state_tensor(self.sim,self._dof_states)
           print("Elapsed: %f"%(time.time()-start))
           start = time.time()
 

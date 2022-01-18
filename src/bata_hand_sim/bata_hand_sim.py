@@ -134,9 +134,9 @@ class BATAHandSim(object):
     self.object_pose.p = gymapi.Vec3(0.17, 0.045, 0.0)
     self.object_pose.r = gymapi.Quat(0,0,0,1)    
     
-    self.goal_pose = gymapi.Transform()
-    self.goal_pose.p = gymapi.Vec3(0.17, -0.07, 0.0)
-    self.goal_pose.r = gymapi.Quat(0,0,0,1)     
+    self.init_goal_pose = gymapi.Transform()
+    self.init_goal_pose.p = gymapi.Vec3(0.17, -0.07, 0.0)
+    self.init_goal_pose.r = gymapi.Quat(0,0,0,1)     
             
     for i in range(self.num_envs):
       # create env
@@ -160,7 +160,7 @@ class BATAHandSim(object):
                                              self.actors_per_env*i)        
       goal_actor_handle = gym.create_actor(env, 
                                            self.goal_asset, 
-                                           self.goal_pose, 
+                                           self.init_goal_pose, 
                                            "actor"+str(self.actors_per_env*i+2), 
                                            self.actors_per_env*i+2)        
       gym.end_aggregate(env)
@@ -245,6 +245,9 @@ class BATAHandSim(object):
     self.cylinder_idx = gym.get_actor_index(self.envs[0], self.actors[1], gymapi.DOMAIN_SIM)
     self.cylinder_pos = self.root_tensor[self.cylinder_idx::self.actors_per_env,:]   
 
+    self.goal_idx = gym.get_actor_index(self.envs[0], self.actors[2], gymapi.DOMAIN_SIM)
+    self.goal_pos = self.root_tensor[self.goal_idx::self.actors_per_env, :]
+
     self.r_finger_torque = FingerTorque(gym,
                                         "r_",
                                         self.rb_states,
@@ -310,6 +313,11 @@ class BATAHandSim(object):
       self.gym.draw_viewer(self.viewer, self.sim, True)
     self.gym.sync_frame_time(self.sim)      
       
+  def set_goal_pose(self, goal_x, goal_y):
+    self.goal_pos[:,0] = goal_x
+    self.goal_pos[:,1] = goal_y
+    self.gym.set_actor_root_state_tensor(self.sim, self._root_tensor)      
+
   # Get the state of the sim
   # Returns tensor of size (n_envs, 6+6+3+4+3+3=25)
   # First 6 columns represent the robot's joint positions

@@ -29,7 +29,7 @@ def main():
   # set up the env grid
   num_envs = 18
   headless = False
-  brake_configs = torch.tensor([[0,1,1,0,1,1],
+  brake_configs = torch.tensor([[1,0,1,1,0,1],
                                 [0,1,1,1,0,1],
                                 [0,1,1,1,1,0],
                                 [1,0,1,0,1,1],
@@ -58,9 +58,10 @@ def main():
   l_force_sp = 0.0
   r_force_sp = 0.0
  
+  init_state = torch.tensor([[0.0,0.298,0.35,0.9,0.29,0.361,0,0,0,0,0,0,0.17,0.045,0.0,0,0,0,1,0,0,0,0,0,0]],dtype=torch.float32)
   cur_state = bhs.get_sim_state()
   cur_action = torch.zeros((1,2),dtype=torch.float32,device=device)
- 
+  step = 1
   while True:
     # Check for keyboard input
     for evt in gym.query_viewer_action_events(bhs.viewer):
@@ -81,10 +82,15 @@ def main():
                                   None, 
                                   bhs.cam_pos+gymapi.Vec3(int(evt.action[-1])*0.6,0.0,0.0), 
                                   bhs.cam_target+gymapi.Vec3(int(evt.action[-1])*0.6,0.0,0.0)) 
+    if step % 120 == 0:
+      
+      bhs.set_sim_state(init_state)
+      print('Reset')
      
     cur_action[0,0] = l_force_sp
     cur_action[0,1] = r_force_sp
     cur_state = bhs.step(cur_state, cur_action, True, True)
+    step += 1
   
 if __name__ == '__main__':
   main()

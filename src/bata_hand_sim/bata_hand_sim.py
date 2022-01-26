@@ -184,7 +184,7 @@ class BATAHandSim(object):
       else:
         brake_config_idx = i%(self.brake_configs.shape[0])
         dof_props["driveMode"][self.brake_configs[brake_config_idx]==1] = gymapi.DOF_MODE_POS
-        dof_props["stiffness"][self.brake_configs[brake_config_idx]==1] = 10.0
+        dof_props["stiffness"][self.brake_configs[brake_config_idx]==1] = 1000.0
         dof_props["damping"][self.brake_configs[brake_config_idx]==1] = 1.0
                 
         dof_props["driveMode"][self.brake_configs[brake_config_idx]==0] = gymapi.DOF_MODE_EFFORT
@@ -382,6 +382,7 @@ class BATAHandSim(object):
   # See get_sim_state() for format of state
   # action should be a tenor of size (n_envs, 2)
   def step(self, state, action, sync=False, render=False):
+    #print(self.dof_states[0:6,0])
     # Add check that passed state is equal to current state?
     
     l_tendon_torques = -1*self.l_finger_torque.compute_tendon_torques(action[:,0])

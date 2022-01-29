@@ -131,7 +131,8 @@ class BATAHandSim(object):
     self.hand_pose.r = gymapi.Quat(0,0,0,1)
     
     self.object_pose = gymapi.Transform()
-    self.object_pose.p = gymapi.Vec3(0.17, 0.045, 0.0)
+    #self.object_pose.p = gymapi.Vec3(0.17, 0.045, 0.0)
+    self.object_pose.p = gymapi.Vec3(0.172, 0.039, 0.0)
     self.object_pose.r = gymapi.Quat(0,0,0,1)    
     
     self.init_goal_pose = gymapi.Transform()
@@ -171,7 +172,7 @@ class BATAHandSim(object):
       dof_states[0][0] = 0.0
       dof_states[1][0] = 0.298
       dof_states[2][0] = 0.35
-      dof_states[3][0] = 0.9
+      dof_states[3][0] = 0.8#0.9
       dof_states[4][0] = 0.29
       dof_states[5][0] = 0.361            
       gym.set_actor_dof_states(env, hand_actor_handle, dof_states, gymapi.STATE_ALL)  

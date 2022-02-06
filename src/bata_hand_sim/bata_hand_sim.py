@@ -131,12 +131,12 @@ class BATAHandSim(object):
     self.hand_pose.r = gymapi.Quat(0,0,0,1)
     
     self.object_pose = gymapi.Transform()
-    #self.object_pose.p = gymapi.Vec3(0.17, 0.045, 0.0)
-    self.object_pose.p = gymapi.Vec3(0.172, 0.039, 0.0)
+    self.object_pose.p = gymapi.Vec3(0.17, 0.045, 0.0)
+    #self.object_pose.p = gymapi.Vec3(0.172, 0.039, 0.0)
     self.object_pose.r = gymapi.Quat(0,0,0,1)    
     
     self.init_goal_pose = gymapi.Transform()
-    self.init_goal_pose.p = gymapi.Vec3(0.17, -0.07, 0.0)
+    self.init_goal_pose.p = gymapi.Vec3(0.17, -0.045, 0.0)
     self.init_goal_pose.r = gymapi.Quat(0,0,0,1)     
             
     for i in range(self.num_envs):
